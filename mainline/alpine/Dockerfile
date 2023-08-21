@@ -1,6 +1,7 @@
 FROM alpine:latest
 
 ENV NGINX_VERSION=1.25.2
+ENV DBIP_RELEASE=2023-08
 
 RUN GPG_KEYS=13C82A63B603576156E30A4EA0EA981B66B0D967 \
 	&& CONFIG="\
@@ -54,6 +55,7 @@ RUN GPG_KEYS=13C82A63B603576156E30A4EA0EA981B66B0D967 \
 		--add-dynamic-module=/usr/src/ngx_headers_more \
 		--add-dynamic-module=/usr/src/ngx_brotli \
 		--add-dynamic-module=/usr/src/njs/nginx \
+		--add-dynamic-module=/usr/src/ngx_http_geoip2_module \
 	" \
 	&& addgroup -S nginx \
 	&& adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
@@ -88,6 +90,7 @@ RUN GPG_KEYS=13C82A63B603576156E30A4EA0EA981B66B0D967 \
 		zlib \
 		zlib-dev \
 		mercurial \
+		libmaxminddb-dev \
 	&& curl -fSL https://nginx.org/download/nginx-$NGINX_VERSION.tar.gz -o nginx.tar.gz \
 	&& curl -fSL https://nginx.org/download/nginx-$NGINX_VERSION.tar.gz.asc  -o nginx.tar.gz.asc \
 	&& export GNUPGHOME="$(mktemp -d)" \
@@ -109,6 +112,7 @@ RUN GPG_KEYS=13C82A63B603576156E30A4EA0EA981B66B0D967 \
 	&& git clone --depth=1 --recurse-submodules https://github.com/google/ngx_brotli /usr/src/ngx_brotli \
 	&& git clone --depth=1 https://github.com/openresty/headers-more-nginx-module /usr/src/ngx_headers_more \
 	&& hg clone http://hg.nginx.org/njs /usr/src/njs \
+	&& git clone --depth=1 https://github.com/leev/ngx_http_geoip2_module.git /usr/src/ngx_http_geoip2_module \
 	&& (git clone --depth=1 https://boringssl.googlesource.com/boringssl /usr/src/boringssl \
 		&& mkdir -p /usr/src/boringssl/build /usr/src/boringssl/.openssl/lib /usr/src/boringssl/.openssl/include \
 		&& ln -sf /usr/src/boringssl/include/openssl /usr/src/boringssl/.openssl/include/openssl \
@@ -136,6 +140,9 @@ RUN GPG_KEYS=13C82A63B603576156E30A4EA0EA981B66B0D967 \
 	&& rm -rf /etc/nginx/html/ \
 	&& mkdir /etc/nginx/conf.d/ \
 	&& mkdir -p /usr/share/nginx/html/ \
+	&& mkdir -p /etc/nginx/geoip \
+	&& wget -O - https://download.db-ip.com/free/dbip-city-lite-$DBIP_RELEASE.mmdb.gz | gzip -d > /etc/nginx/geoip/dbip-city-lite.mmdb \
+    && wget -O - https://download.db-ip.com/free/dbip-country-lite-$DBIP_RELEASE.mmdb.gz | gzip -d > /etc/nginx/geoip/dbip-country-lite.mmdb \
 	&& install -m644 html/index.html /usr/share/nginx/html/ \
 	&& install -m644 html/50x.html /usr/share/nginx/html/ \
 	&& install -m755 objs/nginx-debug /usr/sbin/nginx-debug \
@@ -148,7 +155,7 @@ RUN GPG_KEYS=13C82A63B603576156E30A4EA0EA981B66B0D967 \
 	&& strip /usr/sbin/nginx* \
 	&& strip /usr/lib/nginx/modules/*.so \
 	&& rm -rf /usr/src/nginx-$NGINX_VERSION \
-	&& rm -rf /usr/src/boringssl /usr/src/ngx_* /usr/src/njs \
+	&& rm -rf /usr/src/boringssl /usr/src/ngx_* /usr/src/njs /usr/src/ngx_http_geoip2_module \
 	\
 	# Bring in gettext so we can get `envsubst`, then throw
 	# the rest away. To do this, we need to install `gettext`
