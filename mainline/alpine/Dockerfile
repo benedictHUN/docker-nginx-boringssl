@@ -121,11 +121,11 @@ RUN GPG_KEYS=13C82A63B603576156E30A4EA0EA981B66B0D967 \
 	&& (git clone --depth=1 https://github.com/SpiderLabs/ModSecurity /usr/src/ModSecurity \
 		&& cd /usr/src/ModSecurity \
 		&& git submodule init \
-		&& git submodule update
+		&& git submodule update \
 		&& ./build.sh \
 		&& ./configure \
 		&& make -j$(getconf _NPROCESSORS_ONLN) \
-		&& make -j$(getconf _NPROCESSORS_ONLN) install
+		&& make -j$(getconf _NPROCESSORS_ONLN) install \
 		&& strip -s /usr/local/modsecurity/lib/libmodsecurity.so.3) \
 	\
 	&& git clone --depth=1 https://github.com/SpiderLabs/ModSecurity-nginx /usr/src/ModSecurity-nginx \
